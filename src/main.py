@@ -97,7 +97,6 @@ def render_code(code, messages_list):
 
 
 
-
 if prompt is not None:
     code_val, messages = show()
     render_code(code_val, messages)
