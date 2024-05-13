@@ -1,0 +1,7 @@
+venv/
+.idea/
+.DS_
+*.iml
+src/.env
+
+**/__pycache__/
