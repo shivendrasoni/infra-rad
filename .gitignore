@@ -5,3 +5,4 @@ venv/
 src/.env
 
 **/__pycache__/
+outputs/

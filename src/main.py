@@ -26,18 +26,18 @@ def invoke_dynamic_function_from_string(func_str, func_name, *args, **kwargs):
             raise ValueError(f"Function {func_name} not found in the provided code.")
 
         # Call the function with the provided arguments
-        return func(*args, **kwargs)
+        return func(*args, **kwargs), None
 
     except Exception as error:
         print("Error in dynamic function invocation\n")
         print(func_str)
-        raise ValueError("Invalid function string.")
+        return None, error
 
 def run_functions_static(function_descriptor):
     function_string = function_descriptor['func']
     function_name = function_descriptor['fname']
-    result = invoke_dynamic_function_from_string(function_string, function_name)
-    return result
+    result, error = invoke_dynamic_function_from_string(function_string, function_name)
+    return result, error
 
 def write_or_append_to_file_in_dir(file_name, content, dir_path):
     with open(f"{dir_path}/{file_name}", "a") as f:
@@ -48,7 +48,7 @@ prompt =  st.text_input("Enter your prompt", value =None)
 def show():
     system_prompt = """You are a helpful assistant with immense knowlege of devops, 
     infrastructure. Use the pip package, `diagrams`, and generate the code for an infrastructure. diagram
-    for the infra describled below. 
+    for the infra described below. 
     Remember in `diagrams` cloud provider imports are lower case. aws not AWS etc. Every grouping of elements is a 
     Cluster (with Cluster("VPC"): etc
     IMPORTANT & CRITICAL NOTE:
@@ -62,23 +62,42 @@ def show():
      return diag
      6) func: Should only be a python method WITH NO INDENT
      """
-
-    res = get_completion(prompt, system_prompt=system_prompt)
+    messages=[
+        {"role": "system", "content": system_prompt },
+        {"role": "user", "content": prompt}
+    ]
+    res = get_completion(messages=messages)
     res_json = json.loads(res)
-    return res_json
+    return res_json, messages
 
 @st.experimental_fragment
-def render_code(code):
+def render_code(code, messages_list):
     st.code(code['func'])
     #filename of format user_1_timestamp
     filename = f"{user}_{str(datetime.datetime.now())}.py"
     b = st.button('Save Code')
     if b:
-        write_or_append_to_file_in_dir(filename, code['func'], 'outputs')
-        resp = run_functions_static(code)
-        st.image(resp._repr_png_())
+        count = 0
+        while True:
+            resp, error = run_functions_static(code)
+            if not error:
+                st.image(resp._repr_png_())
+                write_or_append_to_file_in_dir(filename, code['func'], 'outputs')
+                break
+            else:
+                messages_list.append({"role": "user", "content": f"I got the error:\n {str(error)}"})
+                res = get_completion(messages=messages_list)
+                code = json.loads(res)
+                count += 1
+
+            if count >= 5 and error is not None:
+                raise Exception("Error in generating code")
+                break
+
+
+
 
 
 if prompt is not None:
-    code_val = show()
-    render_code(code_val)
+    code_val, messages = show()
+    render_code(code_val, messages)
