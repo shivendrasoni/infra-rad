@@ -10,6 +10,8 @@ from src.utils.openai_util import get_completion
 from dotenv import load_dotenv
 load_dotenv()
 
+st. set_page_config(layout="wide")
+
 def invoke_dynamic_function_from_string(func_str, func_name, *args, **kwargs):
     # Create a dictionary for globals and locals
     try:
@@ -67,30 +69,30 @@ def show(prompt):
     res_json = json.loads(res)
     return res_json
 
-@st.experimental_fragment
+
 def render_code(code):
     user = 'user_1'
-    st.code(code['func'])
     #filename of format user_1_timestamp
     filename = f"{user}_{str(datetime.datetime.now())}.py"
-    b = st.button('Save Code')
-    if b:
-        count = 0
-        while True:
-            resp, error = run_functions_static(code)
-            if not error:
-                st.image(resp._repr_png_())
-                write_or_append_to_file_in_dir(filename, code['func'], 'outputs')
-                break
-            else:
-                st.session_state.messages.append({"role": "user", "content": f"I got the error:\n {str(error)}"})
-                res = get_completion(messages=st.session_state.messages)
-                code = json.loads(res)
-                count += 1
+    count = 0
+    while True:
+        resp, error = run_functions_static(code)
+        if not error:
+            st.session_state.image = resp._repr_png_()
+            # Add assistant response to chat history
+            st.session_state.messages.append({"role": "assistant", "content": code['func']})
+            write_or_append_to_file_in_dir(filename, code['func'], 'outputs')
+            break
+        else:
+            st.session_state.messages.append({"role": "user", "content": f"I got the error:\n {str(error)}"})
+            res = get_completion(messages=st.session_state.messages)
+            code = json.loads(res)
+            count += 1
 
-            if count >= 5 and error is not None:
-                raise Exception("Error in generating code")
-                break
+        if count >= 5 and error is not None:
+            raise Exception("Error in generating code")
+            break
+
 
 
 st.title("Infra Bot")
@@ -98,26 +100,37 @@ st.title("Infra Bot")
 # Initialize chat history
 if "messages" not in st.session_state:
     st.session_state.messages = []
+if "image" not in st.session_state:
+    st.session_state.image = None
+chat, image = st.columns(2)
 
+with chat:
 # Display chat messages from history on app rerun
-# Display chat messages from history on app rerun
-for message in st.session_state.messages:
-    with st.chat_message(message["role"]):
-        st.markdown(message["content"])
+    if len(st.session_state.messages)>1:
+        for message in st.session_state.messages[1:]:
+            with st.chat_message(message["role"]):
+                if message["role"] == "user":
+                    st.markdown(message["content"])
+                else:
+                    st.code(message["content"])
 
-# React to user input
-if prompt := st.chat_input("What do you want to build?"):
-    # Display user message in chat message container
-    st.chat_message("user").markdown(prompt)
-    # Add user message to chat history
-    st.session_state.messages.append({"role": "user", "content": prompt})
+    # React to user input
+    if prompt := st.chat_input("What do you want to build?"):
+        # Display user message in chat message container
+        st.chat_message("user").markdown(prompt)
+        # Add user message to chat history
+        st.session_state.messages.append({"role": "user", "content": prompt})
 
-    code_val = show(prompt)
-    # render_code(code_val)
+        code_val = show(prompt)
+        render_code(code_val)
 
-    response = code_val['func']
-    # Display assistant response in chat message container
-    with st.chat_message("assistant"):
-        st.code(response)
-    # Add assistant response to chat history
-    st.session_state.messages.append({"role": "assistant", "content": response})
+        response = code_val['func']
+        # Display assistant response in chat message container
+        with st.chat_message("assistant"):
+            st.code(response)
+
+with image:
+    if st.session_state.image is None:
+        st.info("No image generated yet")
+    else:
+        st.image(st.session_state.image)
