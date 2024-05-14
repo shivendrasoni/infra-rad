@@ -43,9 +43,7 @@ def write_or_append_to_file_in_dir(file_name, content, dir_path):
     with open(f"{dir_path}/{file_name}", "a") as f:
         f.write(content)
 
-user = "user_1"
-prompt =  st.text_input("Enter your prompt", value =None)
-def show():
+def show(prompt):
     system_prompt = """You are a helpful assistant with immense knowlege of devops, 
     infrastructure. Use the pip package, `diagrams`, and generate the code for an infrastructure. diagram
     for the infra described below. 
@@ -62,16 +60,16 @@ def show():
      return diag
      6) func: Should only be a python method WITH NO INDENT
      """
-    messages=[
-        {"role": "system", "content": system_prompt },
-        {"role": "user", "content": prompt}
-    ]
-    res = get_completion(messages=messages)
+
+    st.session_state.messages.append({"role": "system", "content": system_prompt })
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    res = get_completion(messages=st.session_state.messages)
     res_json = json.loads(res)
-    return res_json, messages
+    return res_json
 
 @st.experimental_fragment
-def render_code(code, messages_list):
+def render_code(code):
+    user = 'user_1'
     st.code(code['func'])
     #filename of format user_1_timestamp
     filename = f"{user}_{str(datetime.datetime.now())}.py"
@@ -85,8 +83,8 @@ def render_code(code, messages_list):
                 write_or_append_to_file_in_dir(filename, code['func'], 'outputs')
                 break
             else:
-                messages_list.append({"role": "user", "content": f"I got the error:\n {str(error)}"})
-                res = get_completion(messages=messages_list)
+                st.session_state.messages.append({"role": "user", "content": f"I got the error:\n {str(error)}"})
+                res = get_completion(messages=st.session_state.messages)
                 code = json.loads(res)
                 count += 1
 
@@ -95,8 +93,31 @@ def render_code(code, messages_list):
                 break
 
 
+st.title("Infra Bot")
 
+# Initialize chat history
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-if prompt is not None:
-    code_val, messages = show()
-    render_code(code_val, messages)
+# Display chat messages from history on app rerun
+# Display chat messages from history on app rerun
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
+
+# React to user input
+if prompt := st.chat_input("What do you want to build?"):
+    # Display user message in chat message container
+    st.chat_message("user").markdown(prompt)
+    # Add user message to chat history
+    st.session_state.messages.append({"role": "user", "content": prompt})
+
+    code_val = show(prompt)
+    # render_code(code_val)
+
+    response = code_val['func']
+    # Display assistant response in chat message container
+    with st.chat_message("assistant"):
+        st.code(response)
+    # Add assistant response to chat history
+    st.session_state.messages.append({"role": "assistant", "content": response})
