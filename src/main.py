@@ -93,44 +93,47 @@ def render_code(code):
             raise Exception("Error in generating code")
             break
 
+def render_ui():
+    # Initialize chat history
 
+    if "messages" not in st.session_state:
+        st.session_state.messages = []
+    if "image" not in st.session_state:
+        st.session_state.image = None
+    chat, image = st.columns(2)
+
+    with chat:
+        # Display chat messages from history on app rerun
+        prompt = st.chat_input("What do you want to build?")
+        if len(st.session_state.messages)>1:
+            for message in st.session_state.messages[1:]:
+                with st.chat_message(message["role"]):
+                    if message["role"] == "user":
+                        st.markdown(message["content"]+"yoloyoloyo")
+                    else:
+                        st.code('<html> DONE </html>')
+
+        # React to user input
+        if prompt:
+            # Display user message in chat message container
+            st.chat_message("user").markdown(prompt)
+            # Add user message to chat history
+            st.session_state.messages.append({"role": "user", "content": prompt})
+
+            code_val = show(prompt)
+            render_code(code_val)
+
+            response = code_val['func']
+            # Display assistant response in chat message container
+            with st.chat_message("assistant"):
+                st.code(response)
+
+    with image:
+        if st.session_state.image is None:
+            st.info("No image generated yet")
+        else:
+            st.image(st.session_state.image)
 
 st.title("Infra Bot")
+render_ui()
 
-# Initialize chat history
-if "messages" not in st.session_state:
-    st.session_state.messages = []
-if "image" not in st.session_state:
-    st.session_state.image = None
-chat, image = st.columns(2)
-
-with chat:
-# Display chat messages from history on app rerun
-    if len(st.session_state.messages)>1:
-        for message in st.session_state.messages[1:]:
-            with st.chat_message(message["role"]):
-                if message["role"] == "user":
-                    st.markdown(message["content"])
-                else:
-                    st.code(message["content"])
-
-    # React to user input
-    if prompt := st.chat_input("What do you want to build?"):
-        # Display user message in chat message container
-        st.chat_message("user").markdown(prompt)
-        # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
-
-        code_val = show(prompt)
-        render_code(code_val)
-
-        response = code_val['func']
-        # Display assistant response in chat message container
-        with st.chat_message("assistant"):
-            st.code(response)
-
-with image:
-    if st.session_state.image is None:
-        st.info("No image generated yet")
-    else:
-        st.image(st.session_state.image)
