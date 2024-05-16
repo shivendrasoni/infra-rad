@@ -6,7 +6,7 @@ import streamlit as st
 # First, let's import the necessary modules from `diagrams`.
 
 import json
-from src.utils.openai_util import get_completion
+from src.utils.arctic import get_completion
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -36,7 +36,7 @@ def invoke_dynamic_function_from_string(func_str, func_name, *args, **kwargs):
         return None, error
 
 def run_functions_static(function_descriptor):
-    function_string = function_descriptor['func']
+    function_string = function_descriptor['func'].strip()
     function_name = function_descriptor['fname']
     result, error = invoke_dynamic_function_from_string(function_string, function_name)
     return result, error
@@ -65,8 +65,8 @@ def show(prompt):
 
     st.session_state.messages.append({"role": "system", "content": system_prompt })
     st.session_state.messages.append({"role": "user", "content": prompt})
-    res = get_completion(messages=st.session_state.messages)
-    res_json = json.loads(res)
+    res = get_completion(prompt = prompt, messages=st.session_state.messages)
+    res_json = res
     return res_json
 
 
@@ -86,7 +86,7 @@ def render_code(code):
         else:
             st.session_state.messages.append({"role": "user", "content": f"I got the error:\n {str(error)}"})
             res = get_completion(messages=st.session_state.messages)
-            code = json.loads(res)
+            code = res
             count += 1
 
         if count >= 5 and error is not None:
@@ -109,9 +109,9 @@ def render_ui():
             for message in st.session_state.messages[1:]:
                 with st.chat_message(message["role"]):
                     if message["role"] == "user":
-                        st.markdown(message["content"]+"yoloyoloyo")
+                        st.markdown(message["content"])
                     else:
-                        st.code('<html> DONE </html>')
+                        st.code(message["content"])
 
         # React to user input
         if prompt:
