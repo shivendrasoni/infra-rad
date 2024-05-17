@@ -6,7 +6,7 @@ import streamlit as st
 # First, let's import the necessary modules from `diagrams`.
 
 import json
-from src.utils.arctic import get_completion
+from src.utils.snowflake_sql import get_completion, SYSTEM_PROMPT
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -31,12 +31,12 @@ def invoke_dynamic_function_from_string(func_str, func_name, *args, **kwargs):
         return func(*args, **kwargs), None
 
     except Exception as error:
-        print("Error in dynamic function invocation\n")
+        print("Error in dynamic function invocation\n", error)
         print(func_str)
         return None, error
 
 def run_functions_static(function_descriptor):
-    function_string = function_descriptor['func'].strip()
+    function_string = function_descriptor['func']
     function_name = function_descriptor['fname']
     result, error = invoke_dynamic_function_from_string(function_string, function_name)
     return result, error
@@ -46,27 +46,12 @@ def write_or_append_to_file_in_dir(file_name, content, dir_path):
         f.write(content)
 
 def show(prompt):
-    system_prompt = """You are a helpful assistant with immense knowlege of devops, 
-    infrastructure. Use the pip package, `diagrams`, and generate the code for an infrastructure. diagram
-    for the infra described below. 
-    Remember in `diagrams` cloud provider imports are lower case. aws not AWS etc. Every grouping of elements is a 
-    Cluster (with Cluster("VPC"): etc
-    IMPORTANT & CRITICAL NOTE:
-     1) The code and imports should be wrapped in a well formatted python function, which can be written to a file.
-     2) The response has to be a valid JSON of format: {func: <python code>, fname: <name of function>}
-     3) The name of the diagram should always be Infra Diagram.
-     4) ALL IMPORTS MUST BE INSIDE the FUNCTION
-     5) The function should return the diagram object (Eg: 
-     with Diagram("Infra Diagram", show=False, filename='outputs/filebro') as diag:
-        dns = Route53("Route53")
-     return diag
-     6) func: Should only be a python method WITH NO INDENT
-     """
 
-    st.session_state.messages.append({"role": "system", "content": system_prompt })
+
+    st.session_state.messages.append({"role": "system", "content": SYSTEM_PROMPT })
     st.session_state.messages.append({"role": "user", "content": prompt})
-    res = get_completion(prompt = prompt, messages=st.session_state.messages)
-    res_json = res
+    res = get_completion(messages=st.session_state.messages)
+    res_json = json.loads(res)
     return res_json
 
 
@@ -86,16 +71,19 @@ def render_code(code):
         else:
             st.session_state.messages.append({"role": "user", "content": f"I got the error:\n {str(error)}"})
             res = get_completion(messages=st.session_state.messages)
-            code = res
+            code = json.loads(res)
             count += 1
 
         if count >= 5 and error is not None:
             raise Exception("Error in generating code")
             break
 
+
+
+st.title("Infra Bot")
+
 def render_ui():
     # Initialize chat history
-
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "image" not in st.session_state:
@@ -104,7 +92,6 @@ def render_ui():
 
     with chat:
         # Display chat messages from history on app rerun
-        prompt = st.chat_input("What do you want to build?")
         if len(st.session_state.messages)>1:
             for message in st.session_state.messages[1:]:
                 with st.chat_message(message["role"]):
@@ -114,7 +101,7 @@ def render_ui():
                         st.code(message["content"])
 
         # React to user input
-        if prompt:
+        if prompt := st.chat_input("What do you want to build?"):
             # Display user message in chat message container
             st.chat_message("user").markdown(prompt)
             # Add user message to chat history
@@ -134,6 +121,4 @@ def render_ui():
         else:
             st.image(st.session_state.image)
 
-st.title("Infra Bot")
 render_ui()
-
