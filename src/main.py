@@ -6,7 +6,7 @@ import streamlit as st
 # First, let's import the necessary modules from `diagrams`.
 
 import json
-from src.utils.snowflake_sql import get_completion, SYSTEM_PROMPT
+from src.utils.openai_util import get_completion, SYSTEM_PROMPT, get_terraform_code,get_tf
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -54,6 +54,16 @@ def show(prompt):
     res_json = json.loads(res)
     return res_json
 
+@st.experimental_fragment
+def show_terraform_code():
+    b = st.button("Generate Terraform Code")
+
+    if b:
+        stream = get_terraform_code(st.session_state.image)
+
+        st.write_stream(stream)
+        # Close the stream
+        stream.close()
 
 def render_code(code):
     user = 'user_1'
@@ -91,6 +101,7 @@ def render_ui():
     chat, image = st.columns(2)
 
     with chat:
+        prompt = st.chat_input("What do you want to build?")
         # Display chat messages from history on app rerun
         if len(st.session_state.messages)>1:
             for message in st.session_state.messages[1:]:
@@ -101,7 +112,7 @@ def render_ui():
                         st.code(message["content"])
 
         # React to user input
-        if prompt := st.chat_input("What do you want to build?"):
+        if prompt:
             # Display user message in chat message container
             st.chat_message("user").markdown(prompt)
             # Add user message to chat history
@@ -120,5 +131,6 @@ def render_ui():
             st.info("No image generated yet")
         else:
             st.image(st.session_state.image)
+            show_terraform_code()
 
 render_ui()

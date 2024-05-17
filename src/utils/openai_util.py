@@ -1,5 +1,8 @@
+import base64
+
 from openai import OpenAI
 import json
+import requests
 
 import pprint
 
@@ -35,8 +38,68 @@ def get_completion(messages=[{"role": "system", "content": "You are a helpful as
     )
     return response.choices[0].message.content
 
+def encode_image(image_path):
+    with open(image_path, "rb") as image_file:
+        return
+
+# Path to your image
+
+def get_terraform_code(base64_image='', model="gpt-4o"):
+
+    base64_image = base64.b64encode(base64_image).decode('utf-8')
+
+# Getting the base64 string
+#     base64_image = encode_image('/Users/shivendra/personal/ai/infra-rad/src/outputs/filename.png')
+    response = client.chat.completions.create(
+        model="gpt-4o",
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Convert this architectural diagram to terraform code. You are free to make any assumptions, try to make the code parametrised, so we can fill them with values. RESPOND WITH ONLY THE CODE, NO explanation text"},
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}"
+                        },
+                    },
+                ],
+            }
+        ],
+        stream=True
+    )
+
+    return response
 
 
+def get_tf(base64_image):
+    headers = {
+        "Content-Type": "application/json",
+        "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}"
+    }
 
+    payload = {
+        "model": "gpt-4o",
+        "messages": [
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "What’s in this image?"
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/jpeg;base64,{base64_image}"
+                        }
+                    }
+                ]
+            }
+        ],
+        "max_tokens": 300
+    }
 
+    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
 
+    print(response.json())
