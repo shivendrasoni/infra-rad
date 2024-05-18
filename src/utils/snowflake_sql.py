@@ -1,3 +1,5 @@
+import os
+
 import snowflake.connector
 from snowflake.connector.errors import OperationalError
 import json
@@ -34,11 +36,11 @@ SYSTEM_PROMPT = """
 
 
 def get_completion(messages=[{"role": "system", "content": "You are a helpful assistant that replies with valid json"}], model="snowflake-arctic"):
-    user='POKHARELSRJ'
-    password='Ax+by+cz=1'
-    account='uhcmwnv-vbb10105'
-    warehouse='COMPUTE_WH'
 
+    user = os.environ.get('SNOWFLAKE_USER')
+    password = os.environ.get('SNOWFLAKE_PASSWORD')
+    account = os.environ.get('SNOWFLAKE_ACCOUNT')
+    warehouse = os.environ.get('SNOWFLAKE_WAREHOUSE')
 
     try:
         conn = snowflake.connector.connect(

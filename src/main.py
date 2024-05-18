@@ -4,7 +4,7 @@ import streamlit as st
 
 
 import json
-from src.utils.openai_util import get_completion, SYSTEM_PROMPT, get_terraform_code
+from utils.openai_util import get_completion, SYSTEM_PROMPT, get_terraform_code
 from dotenv import load_dotenv
 load_dotenv()
 
