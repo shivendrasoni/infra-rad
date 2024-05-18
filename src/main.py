@@ -4,7 +4,7 @@ import streamlit as st
 
 
 import json
-from src.utils.openai_util import get_completion, SYSTEM_PROMPT, get_terraform_code,get_tf
+from src.utils.openai_util import get_completion, SYSTEM_PROMPT, get_terraform_code
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -55,13 +55,13 @@ def show(prompt):
 @st.experimental_fragment
 def show_terraform_code():
     b = st.button("Generate Terraform Code")
-
     if b:
         stream = get_terraform_code(st.session_state.image)
-
-        st.write_stream(stream)
+        stream_value =  st.write_stream(stream)
         # Close the stream
         stream.close()
+
+        st.download_button('Download Terraform Code', stream_value, mime = 'text', file_name='terraform_plan.tf')
 
 def render_code(code):
     user = 'user_1'
