@@ -2,8 +2,6 @@ import datetime
 
 import streamlit as st
 
-# We will use the `diagrams` package to generate a diagram for the described infrastructure.
-# First, let's import the necessary modules from `diagrams`.
 
 import json
 from src.utils.openai_util import get_completion, SYSTEM_PROMPT, get_terraform_code,get_tf
