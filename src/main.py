@@ -98,7 +98,16 @@ def render_ui():
 
         if st.session_state.code:
             print(st.session_state.code)
-            response_dict = code_editor(st.session_state.code['func'], lang="python", options = {'showLineNumber':True})
+            editor_btns = [{
+                "name": "Run",
+                "feather": "Play",
+                "primary": True,
+                "hasText": True,
+                "showWithIcon": True,
+                "commands": ["submit"],
+                "style": {"bottom": "0.44rem", "right": "0.4rem"}
+            }]
+            response_dict = code_editor(st.session_state.code['func'], lang="python", buttons=editor_btns, options = {'showLineNumbers':True})
             if len(response_dict['id']) != 0 and ( response_dict['type'] == "selection" or response_dict['type'] == "submit" ):
                 render_diagram_button({
                     "func": response_dict['text'],
