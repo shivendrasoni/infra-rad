@@ -7,3 +7,4 @@ src/.env
 **/__pycache__/
 outputs/
 **/temp.py
+.streamlit/secrets.toml
