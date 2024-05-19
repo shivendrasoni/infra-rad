@@ -8,7 +8,6 @@ import pprint
 
 import os
 
-
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 SYSTEM_PROMPT = """You are a helpful solution architect with immense knowlege of devops, 
@@ -28,30 +27,41 @@ SYSTEM_PROMPT = """You are a helpful solution architect with immense knowlege of
      6) func: Should only be a python method WITH NO INDENT
      """
 
+GEN_TF_CODE_SYSTEM_PROMPT = """Below is an architecture diagram's code generated in the diagrams library in python.
+I want you to convert this code to terraform code. You are free to make any assumptions,
+try to make the code parametrised, so we can fill them with values. RESPOND WITH ONLY THE CODE, NO explanation text.
+"""
 
-def get_completion(messages=[{"role": "system", "content": "You are a helpful assistant that replies with valid json"}], model="gpt-4-turbo"):
+
+def get_completion(messages=[{"role": "system", "content": "You are a helpful assistant that replies with valid json"}],
+                   model="gpt-4-turbo",
+                   response_format={"type": "json_object"},
+                   stream=False):
+    print(model, messages, response_format)
     response = client.chat.completions.create(
         model=model,
         messages=messages,
         temperature=0.0,
-        response_format={"type": "json_object"},
+        response_format=response_format,
+        stream=stream
     )
-    return response.choices[0].message.content
+    return response
+
 
 # Path to your image
 
 def get_terraform_code(base64_image='', model="gpt-4o"):
-
     base64_image = base64.b64encode(base64_image).decode('utf-8')
 
-# Getting the base64 string
+    # Getting the base64 string
     response = client.chat.completions.create(
         model=model,
         messages=[
             {
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "Convert this architectural diagram to terraform code. You are free to make any assumptions, try to make the code parametrised, so we can fill them with values. RESPOND WITH ONLY THE CODE, NO explanation text"},
+                    {"type": "text",
+                     "text": "Convert this architectural diagram to terraform code. You are free to make any assumptions, try to make the code parametrised, so we can fill them with values. RESPOND WITH ONLY THE CODE, NO explanation text"},
                     {
                         "type": "image_url",
                         "image_url": {

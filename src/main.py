@@ -1,12 +1,13 @@
 import datetime
 import streamlit as st
 import json
-from utils.openai_util import get_completion, SYSTEM_PROMPT, get_terraform_code
+from utils.openai_util import get_completion, SYSTEM_PROMPT, get_terraform_code, GEN_TF_CODE_SYSTEM_PROMPT
 from dotenv import load_dotenv
 from code_editor import code_editor
 
 load_dotenv()
 st.set_page_config(layout="wide")
+
 
 def invoke_dynamic_function_from_string(func_str, func_name, *args, **kwargs):
     try:
@@ -19,8 +20,8 @@ def invoke_dynamic_function_from_string(func_str, func_name, *args, **kwargs):
         return func(*args, **kwargs), None
     except Exception as error:
         print("Error in dynamic function invocation\n", error)
-        print(func_str)
         return None, error
+
 
 def run_functions_static(function_descriptor):
     function_string = function_descriptor['func']
@@ -28,23 +29,33 @@ def run_functions_static(function_descriptor):
     result, error = invoke_dynamic_function_from_string(function_string, function_name)
     return result, error
 
+
 def write_or_append_to_file_in_dir(file_name, content, dir_path):
     with open(f"{dir_path}/{file_name}", "a") as f:
         f.write(content)
 
+
 def show():
     res = get_completion(messages=st.session_state.messages)
-    res_json = json.loads(res)
+    res_json = json.loads(res.choices[0].message.content)
     return res_json
+
 
 @st.experimental_fragment
 def show_terraform_code():
     b = st.button("Generate Terraform Code")
     if b:
-        stream = get_terraform_code(st.session_state.image)
+        gen_tf_code_messages = [
+            {"role": "system", "content": GEN_TF_CODE_SYSTEM_PROMPT},
+            {"role": "user", "content": st.session_state.code['func']}
+        ]
+        response_format = {"type": "text"}
+        stream = get_completion(messages=gen_tf_code_messages, response_format=response_format, stream=True)
+
         stream_value = st.write_stream(stream)
         stream.close()
         st.download_button('Download Terraform Code', stream_value, mime='text', file_name='terraform_plan.tf')
+
 
 def render_code(code):
     user = 'user_1'
@@ -66,6 +77,7 @@ def render_code(code):
             raise Exception("Error in generating code")
             break
 
+
 st.title("InfraRad")
 st.markdown("Build your infrastructure with a single click!")
 st.divider()
@@ -74,13 +86,13 @@ st.divider()
 def render_diagram_button(response_dict):
     bx = st.button("Update Diagram", key='generate_diagram')
     if bx:
-        res,error = run_functions_static(response_dict)
+        res, error = run_functions_static(response_dict)
         st.session_state.image = res._repr_png_()
 
 
 def render_ui():
     if "messages" not in st.session_state:
-        st.session_state.messages = [{"role": "system", "content": SYSTEM_PROMPT }]
+        st.session_state.messages = [{"role": "system", "content": SYSTEM_PROMPT}]
     if "image" not in st.session_state:
         st.session_state.image = None
     if "code" not in st.session_state:
@@ -97,7 +109,6 @@ def render_ui():
             render_code(code_val)
 
         if st.session_state.code:
-            print(st.session_state.code)
             editor_btns = [{
                 "name": "Run",
                 "feather": "Play",
@@ -107,8 +118,10 @@ def render_ui():
                 "commands": ["submit"],
                 "style": {"bottom": "0.44rem", "right": "0.4rem"}
             }]
-            response_dict = code_editor(st.session_state.code['func'], lang="python", buttons=editor_btns, options = {'showLineNumbers':True})
-            if len(response_dict['id']) != 0 and ( response_dict['type'] == "selection" or response_dict['type'] == "submit" ):
+            response_dict = code_editor(st.session_state.code['func'], lang="python", buttons=editor_btns,
+                                        options={'showLineNumbers': True})
+            if len(response_dict['id']) != 0 and (
+                    response_dict['type'] == "selection" or response_dict['type'] == "submit"):
                 render_diagram_button({
                     "func": response_dict['text'],
                     "fname": st.session_state.code['fname']
@@ -126,5 +139,6 @@ def render_ui():
         else:
             st.image(st.session_state.image)
             show_terraform_code()
+
 
 render_ui()
