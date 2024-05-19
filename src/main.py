@@ -3,6 +3,7 @@ import streamlit as st
 import json
 from utils.openai_util import get_completion, SYSTEM_PROMPT, get_terraform_code
 from dotenv import load_dotenv
+from code_editor import code_editor
 
 load_dotenv()
 st.set_page_config(layout="wide")
@@ -31,9 +32,7 @@ def write_or_append_to_file_in_dir(file_name, content, dir_path):
     with open(f"{dir_path}/{file_name}", "a") as f:
         f.write(content)
 
-def show(prompt):
-    st.session_state.messages.append({"role": "system", "content": SYSTEM_PROMPT })
-    st.session_state.messages.append({"role": "user", "content": prompt})
+def show():
     res = get_completion(messages=st.session_state.messages)
     res_json = json.loads(res)
     return res_json
@@ -67,11 +66,21 @@ def render_code(code):
             raise Exception("Error in generating code")
             break
 
-st.title("Infra Bot")
+st.title("InfraRad")
+st.markdown("Build your infrastructure with a single click!")
+st.divider()
+
+
+def render_diagram_button(response_dict):
+    bx = st.button("Update Diagram", key='generate_diagram')
+    if bx:
+        res,error = run_functions_static(response_dict)
+        st.session_state.image = res._repr_png_()
+
 
 def render_ui():
     if "messages" not in st.session_state:
-        st.session_state.messages = []
+        st.session_state.messages = [{"role": "system", "content": SYSTEM_PROMPT }]
     if "image" not in st.session_state:
         st.session_state.image = None
     if "code" not in st.session_state:
@@ -82,17 +91,24 @@ def render_ui():
     with chat:
         prompt = st.chat_input("What do you want to build?")
         if prompt:
-            st.chat_message("user").markdown(prompt)
             st.session_state.messages.append({"role": "user", "content": prompt})
-            code_val = show(prompt)
-            response = code_val['func']
-            st.session_state.code = response
+            code_val = show()
+            st.session_state.code = code_val
             render_code(code_val)
 
-        st.code(st.session_state.code)
+        if st.session_state.code:
+            print(st.session_state.code)
+            response_dict = code_editor(st.session_state.code['func'], lang="python", options = {'showLineNumber':True})
+            if len(response_dict['id']) != 0 and ( response_dict['type'] == "selection" or response_dict['type'] == "submit" ):
+                render_diagram_button({
+                    "func": response_dict['text'],
+                    "fname": st.session_state.code['fname']
+                })
+
+        st.subheader("Chat History")
         for message in st.session_state.messages[1:]:
-            with st.chat_message(message["role"]):
-                if message["role"] == "user":
+            if message["role"] == "user":
+                with st.chat_message(message["role"]):
                     st.markdown(message["content"])
 
     with image:
