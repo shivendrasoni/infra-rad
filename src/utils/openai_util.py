@@ -45,7 +45,6 @@ def get_terraform_code(base64_image='', model="gpt-4o"):
     base64_image = base64.b64encode(base64_image).decode('utf-8')
 
 # Getting the base64 string
-#     base64_image = encode_image('/Users/shivendra/personal/ai/infra-rad/src/outputs/filename.png')
     response = client.chat.completions.create(
         model=model,
         messages=[
