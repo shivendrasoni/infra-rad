@@ -93,7 +93,9 @@ st-files-connection==0.1.0
 st-supabase-connection==1.2.2
 storage3==0.7.4
 streamlit==1.33.0
+streamlit-ace==0.1.1
 streamlit-card==1.0.0
+streamlit-code-editor==0.1.14
 StrEnum==0.4.15
 supabase==2.4.3
 supafunc==0.4.5
