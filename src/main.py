@@ -100,12 +100,12 @@ def render_ui():
         st.session_state.code = None
 
     chat, image = st.columns(2)
-
+    full_prompt = ''
     with chat:
         prompt = st.chat_input("What do you want to build?")
-
         if prompt:
-            st.markdown(f"**Latest Prompt**: {prompt}")
+            full_prompt = full_prompt +'.'+ prompt
+            st.markdown(f"### Requirement: \n {full_prompt}")
             st.session_state.messages.append({"role": "user", "content": prompt})
             code_val = show()
             st.session_state.code = code_val
