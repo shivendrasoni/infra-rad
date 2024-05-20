@@ -1,4 +1,10 @@
 import datetime
+import math
+import time
+
+
+import random
+
 import streamlit as st
 import json
 from utils.openai_util import get_completion, SYSTEM_PROMPT, get_terraform_code, GEN_TF_CODE_SYSTEM_PROMPT
@@ -24,7 +30,7 @@ def invoke_dynamic_function_from_string(func_str, func_name, *args, **kwargs):
 
 
 def run_functions_static(function_descriptor):
-    function_string = function_descriptor['func']
+    function_string = function_descriptor['func'].strip()
     function_name = function_descriptor['fname']
     result, error = invoke_dynamic_function_from_string(function_string, function_name)
     return result, error
@@ -66,7 +72,7 @@ def render_code(code):
         if not error:
             st.session_state.image = resp._repr_png_()
             st.session_state.messages.append({"role": "assistant", "content": code['func']})
-            write_or_append_to_file_in_dir(filename, code['func'], 'outputs')
+            # write_or_append_to_file_in_dir(filename, code['func'], 'outputs')
             break
         else:
             st.toast('An error occured, retrying!', icon="🚨")
@@ -93,23 +99,100 @@ def render_diagram_button(response_dict):
 
 def render_ui():
     if "messages" not in st.session_state:
-        st.session_state.messages = [{"role": "system", "content": SYSTEM_PROMPT}]
+        st.session_state.messages = []
     if "image" not in st.session_state:
         st.session_state.image = None
     if "code" not in st.session_state:
         st.session_state.code = None
+    if 'counter' not in st.session_state:
+        st.session_state.counter = 0
 
+
+    arr = []
+    code_1 = {
+        'fname': 'generate_infra_diagram',
+        'func': """
+    def generate_infra_diagram():
+    from diagrams import Diagram, Cluster
+    from diagrams.aws.compute import EC2
+    from diagrams.aws.database import RDS
+    from diagrams.aws.network import ELB, Route53, CloudFront
+    from diagrams.aws.storage import S3
+    from diagrams.aws.database import ElastiCache
+
+    with Diagram("Infra Diagram", show=False, filename='outputs/media_delivery_infra') as diag:
+        dns = Route53("Route53")
+        cdn = CloudFront("CloudFront CDN")
+        with Cluster("VPC"):
+            lb = ELB("Load Balancer")
+            with Cluster("EC2 Instances"):
+                ec2_instances = [EC2("EC2 Instance") for _ in range(3)]
+            s3 = S3("Media Storage")
+            db = RDS("Database")
+            cache = ElastiCache("Redis Cache")
+
+            dns >> cdn >> lb >> ec2_instances
+            ec2_instances >> db
+            ec2_instances >> s3
+            ec2_instances >> cache
+
+    return diag"""
+    }
+    arr.append(code_1)
+
+    code_2 = {
+        'fname': 'generate_infra_diagram',
+        'func': """
+    def generate_infra_diagram():
+    from diagrams import Diagram, Cluster
+    from diagrams.aws.compute import EC2, Lambda
+    from diagrams.aws.database import RDS
+    from diagrams.aws.network import ELB, Route53, CloudFront
+    from diagrams.aws.storage import S3
+    from diagrams.aws.database import ElastiCache
+    from diagrams.aws.integration import SQS
+
+    with Diagram("Infra Diagram", show=False, filename='outputs/media_delivery_infra') as diag:
+        dns = Route53("Route53")
+        cdn = CloudFront("CloudFront CDN")
+        with Cluster("VPC"):
+            lb = ELB("Load Balancer")
+            with Cluster("EC2 Instances"):
+                ec2_instances = [EC2("EC2 Instance") for _ in range(3)]
+            s3 = S3("Media Storage")
+            db = RDS("Database")
+            cache = ElastiCache("Redis Cache")
+            with Cluster("Media Processing"):
+                sqs = SQS("Image Job Queue")
+                lambda_processor = Lambda("Image Processor")
+                sqs >> lambda_processor >> s3
+
+            dns >> cdn >> lb >> ec2_instances
+            ec2_instances >> db
+            ec2_instances >> s3
+            ec2_instances >> cache
+
+    return diag
+    """
+    }
+    arr.append(code_2)
+    image_arr = ['/Users/shivendra/personal/ai/infra-rad/outputs/1.png', '/Users/shivendra/personal/ai/infra-rad/outputs/2.png']
     chat, image = st.columns(2)
     full_prompt = ''
+
     with chat:
         prompt = st.chat_input("What do you want to build?")
         if prompt:
-            full_prompt = full_prompt +'.'+ prompt
-            st.markdown(f"### Requirement: \n {full_prompt}")
             st.session_state.messages.append({"role": "user", "content": prompt})
-            code_val = show()
-            st.session_state.code = code_val
-            render_code(code_val)
+            st.markdown(f"### Requirement: \n {('. ').join([message['content'] for message in st.session_state.messages])}")
+            # code_val = show()
+            # random between 3-6
+            random_num = math.floor(random.randint(3,6))
+            time.sleep(random_num)
+            st.session_state.code = arr[st.session_state.counter]
+            st.session_state.image = image_arr[st.session_state.counter]
+            st.session_state.counter += 1
+
 
         if st.session_state.code:
             editor_btns = [{
@@ -131,7 +214,7 @@ def render_ui():
                 })
 
         st.subheader("Chat History")
-        for message in st.session_state.messages[1:]:
+        for message in st.session_state.messages:
             if message["role"] == "user":
                 with st.chat_message(message["role"]):
                     st.markdown(message["content"])
