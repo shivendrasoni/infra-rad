@@ -69,11 +69,12 @@ def render_code(code):
             write_or_append_to_file_in_dir(filename, code['func'], 'outputs')
             break
         else:
+            st.toast('An error occured, retrying!', icon="🚨")
             st.session_state.messages.append({"role": "user", "content": f"I got the error:\n {str(error)}"})
             res = get_completion(messages=st.session_state.messages)
-            code = json.loads(res)
+            code = json.loads(res.choices[0].message.content)
             count += 1
-        if count >= 5 and error is not None:
+        if count >= 10 and error is not None:
             raise Exception("Error in generating code")
             break
 
@@ -102,7 +103,9 @@ def render_ui():
 
     with chat:
         prompt = st.chat_input("What do you want to build?")
+
         if prompt:
+            st.markdown(f"**Latest Prompt**: {prompt}")
             st.session_state.messages.append({"role": "user", "content": prompt})
             code_val = show()
             st.session_state.code = code_val
@@ -139,6 +142,5 @@ def render_ui():
         else:
             st.image(st.session_state.image)
             show_terraform_code()
-
 
 render_ui()

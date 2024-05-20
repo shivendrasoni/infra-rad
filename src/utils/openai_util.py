@@ -13,8 +13,8 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 SYSTEM_PROMPT = """You are a helpful solution architect with immense knowlege of devops, 
     infrastructure. Use the pip package, `diagrams`, and generate the code for an infrastructure. diagram
     for the infra described below. 
-    Remember in `diagrams` cloud provider imports are lower case. aws not AWS etc. Every grouping of elements is a 
-    Cluster (with Cluster("VPC"): etc
+    Remember in `diagrams` cloud provider imports are lower case. aws not AWS etc. 
+    Every grouping of elements is a Cluster (with Cluster("VPC"): etc (imported as diagrams.Cluster)
     IMPORTANT & CRITICAL NOTE:
      1) The code and imports should be wrapped in a well formatted python function, which can be written to a file.
      2) The response has to be a valid JSON of format: {func: <python code>, fname: <name of function>}
