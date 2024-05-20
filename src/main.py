@@ -66,7 +66,7 @@ def render_code(code):
         if not error:
             st.session_state.image = resp._repr_png_()
             st.session_state.messages.append({"role": "assistant", "content": code['func']})
-            write_or_append_to_file_in_dir(filename, code['func'], 'outputs')
+            # write_or_append_to_file_in_dir(filename, code['func'], 'outputs')
             break
         else:
             st.toast('An error occured, retrying!', icon="🚨")
@@ -100,13 +100,16 @@ def render_ui():
         st.session_state.code = None
 
     chat, image = st.columns(2)
-    full_prompt = ''
+
     with chat:
         prompt = st.chat_input("What do you want to build?")
         if prompt:
-            full_prompt = full_prompt +'.'+ prompt
-            st.markdown(f"### Requirement: \n {full_prompt}")
+            prompt = prompt[0].upper() + prompt[1:]
             st.session_state.messages.append({"role": "user", "content": prompt})
+
+            user_messages = [message['content'] for message in st.session_state.messages if message['role'] == 'user']
+
+            st.markdown(f"### Requirement: \n {'. '.join(user_messages)}")
             code_val = show()
             st.session_state.code = code_val
             render_code(code_val)
