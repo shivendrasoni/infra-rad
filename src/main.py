@@ -1,7 +1,8 @@
 import datetime
 import streamlit as st
 import json
-from utils.openai_util import get_completion, SYSTEM_PROMPT, get_terraform_code, GEN_TF_CODE_SYSTEM_PROMPT
+from utils.snowflake_sql import get_completion, SYSTEM_PROMPT
+from utils.openai_util import GEN_TF_CODE_SYSTEM_PROMPT
 from dotenv import load_dotenv
 from code_editor import code_editor
 
